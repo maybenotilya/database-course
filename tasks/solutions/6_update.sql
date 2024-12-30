@@ -5,20 +5,21 @@
 -- исполнитель которого -- студент. Выполните этот оператор.
 ---------------------------------------------------------------
 
-UPDATE Order1
-SET Comments = CONCAT('(s) ', Comments)
-WHERE Employee_ID IN (
-    SELECT Employee_ID
-    FROM Employee
-    WHERE Spec = 'student'
-)
-AND Comments <> '';
+UPDATE order1
+SET comments = CONCAT('(s)', comments)
+WHERE comments <> ''
+AND employee_id IN (
+    SELECT employee_id
+    FROM employee
+    WHERE spec = 'student'
+);
 
-SELECT Spec, Comments
-FROM Order1
-    JOIN Employee ON Employee.Employee_ID = Order1.Employee_ID;
+SELECT spec, comments
+FROM order1, employee
+WHERE order1.employee_id = employee.employee_id;
 
 /*
+UPDATE 1
     spec     |      comments
 -------------+--------------------
  student     |
@@ -43,7 +44,7 @@ FROM Order1
  boss        |
  boss        |
  hairdresser |
- student     | (s) Comming late
+ student     | (s)Comming late
 (23 rows)
 */
 
@@ -53,13 +54,13 @@ FROM Order1
 ---------------------------------------------------------------
 
 DELETE 
-FROM Order1
-WHERE Service_ID in (
-    SELECT Service_ID
-    FROM Service
-    WHERE Name = 'Combing'
-)
-AND Is_Done = 0;
+FROM order1
+WHERE is_done = 0 
+AND service_id in (
+    SELECT service_id
+    FROM service
+    WHERE name = 'Combing'
+);
 
 /*
 DELETE 2
@@ -70,26 +71,26 @@ DELETE 2
 -- с сохранением последовательной нумерации записей (используйте вложенный select с max(…) + 1).      
 ---------------------------------------------------------------
 
-INSERT INTO Person(Person_ID, Last_Name, First_Name, Phone, Address)
+INSERT INTO person(person_id, last_name, first_name, phone, address)
 VALUES (
-    (SELECT MAX(Person_ID) + 1 FROM Person),
-    'Hookovich',
-    'Pudje',
-    '+77777777777',
-    'Centralniy Koridor'
+    (SELECT MAX(person_id) + 1 FROM person),
+    'Mellstroy',
+    'Schavel',
+    '+88005553535',
+    'Brazil, Nhauhuj'
 );
 
 SELECT *
-FROM Person
-WHERE Person_ID in (
-    SELECT MAX(Person_ID)
-    FROM Person
+FROM person
+WHERE person_id in (
+    SELECT MAX(person_id)
+    FROM person
 );
 
 /*
- person_id | last_name | first_name |    phone     |      address
------------+-----------+------------+--------------+--------------------
-        11 | Pudje     | Hookovich  | +77777777777 | Centralniy Koridor
+ person_id | last_name | first_name |    phone     |     address
+-----------+-----------+------------+--------------+-----------------
+        11 | Mellstroy | Schavel    | +88005553535 | Brazil, Nhauhuj
 (1 row)
 */
 
@@ -100,44 +101,58 @@ WHERE Person_ID in (
 
 CREATE TABLE IF NOT EXISTS Document (
     Document_ID SERIAL,
-    Person_ID INT NOT NULL,
+    person_id INT NOT NULL,
     Document_Type VARCHAR(25) NOT NULL,
     Document_Number VARCHAR(25) NOT NULL,
-    CONSTRAINT Document_PK PRIMARY KEY (Document_ID),
-    CONSTRAINT FK_Document_Person FOREIGN KEY (Person_ID) REFERENCES Person (Person_ID)
-        ON UPDATE CASCADE 
-        ON DELETE CASCADE
+    CONSTRAINT Document_PK PRIMARY KEY (Document_ID)
 );
+
+ALTER TABLE
+    Document
+    ADD
+        CONSTRAINT FK_Document_Person FOREIGN KEY (person_id) REFERENCES person (person_id)
+            ON UPDATE CASCADE 
+            ON DELETE CASCADE
+    ;
 
 ---------------------------------------------------------------
 -- Добавьте в нее пару документов для только что созданного нового физ.лица. 
 ---------------------------------------------------------------
 
-INSERT INTO Document (Person_ID, Document_Type, Document_Number)
-VALUES ((SELECT MAX(Person_ID) FROM Person), 'Passport', '123456'),
-       ((SELECT MAX(Person_ID) FROM Person), 'SNILS', '7891011'),
-       ((SELECT MAX(Person_ID) FROM Person), 'MeatHookLicense', '12131415');
+INSERT INTO Document (person_id, Document_Type, Document_Number)
+VALUES ((SELECT MAX(person_id) FROM person), 'Passport', '85738538'),
+       ((SELECT MAX(person_id) FROM person), 'VoditelskiePrava', '58454785');
 
 ---------------------------------------------------------------
--- Проверка каскадности на изменение Person_ID
+-- Проверка каскадности на изменение person_id
 ---------------------------------------------------------------
 
-UPDATE Person
-SET Person_ID = 12345
-WHERE Last_Name = 'Hookovich';
+UPDATE person
+SET person_id = 52
+WHERE last_name = 'Mellstroy';
 
-SELECT Last_Name, Document_Type, Document_Number
-FROM Person 
-    JOIN Document ON Person.Person_ID = Document.Person_ID
-WHERe Last_Name = 'Hookovich';
+SELECT *
+FROM person
+WHERE person_id = 52;
+
+SELECT last_name, Document_Type, Document_Number
+FROM person 
+    JOIN Document ON person.person_id = Document.person_id
+WHERe last_name = 'Mellstroy';
 
 /*
- last_name |  document_type  | document_number
------------+-----------------+-----------------
- Hookovich | Passport        | 123456
- Hookovich | SNILS           | 7891011
- Hookovich | MeatHookLicense | 12131415
-(3 rows)
+UPDATE 1
+
+ person_id | last_name | first_name |    phone     |     address
+-----------+-----------+------------+--------------+-----------------
+        52 | Mellstroy | Schavel    | +88005553535 | Brazil, Nhauhuj
+(1 row)
+
+ last_name |  document_type   | document_number
+-----------+------------------+-----------------
+ Mellstroy | Passport         | 85738538
+ Mellstroy | VoditelskiePrava | 58454785
+(2 rows)
 */
 
 ---------------------------------------------------------------
@@ -145,12 +160,13 @@ WHERe Last_Name = 'Hookovich';
 ---------------------------------------------------------------
 
 DELETE
-FROM Person
-WHERE Last_Name = 'Hookovich';
+FROM person
+WHERE last_name = 'Mellstroy';
 
 SELECT * FROM Document;
 
 /*
+DELETE 1
  document_id | person_id | document_type | document_number
 -------------+-----------+---------------+-----------------
 (0 rows)

@@ -5,22 +5,23 @@
 -- Кличка, порода, возраст, фамилия и имя хозяина.
 -- Используя это представление, получите список пуделей: кличка, фамилия хозяина.
 ---------------------------------------------------------------
-CREATE VIEW Dogs AS
-    SELECT Nick, Breed, Age, Last_Name, First_Name
-    FROM Pet
-        JOIN Owner ON Owner.Owner_ID = Pet.Owner_ID
-        JOIN Person ON Person.Person_ID = Owner.Owner_ID
-        JOIN Pet_Type ON Pet.Pet_Type_ID = Pet_Type.Pet_Type_ID
-    WHERE Pet_Type.Name = 'DOG';
 
-SELECT Nick, Last_Name
-FROM Dogs
-WHERE Breed = 'poodle';
+CREATE VIEW dogs AS
+    SELECT nick, breed, age, last_name, first_name
+    FROM pet
+        INNER JOIN owner ON owner.owner_id = pet.owner_id
+        INNER JOIN person ON person.person_id = owner.owner_id
+        INNER JOIN pet_type ON pet.pet_type_id = pet_type.pet_type_id
+    WHERE pet_type.name = 'DOG';
+
+SELECT nick, last_name
+FROM dogs
+WHERE breed = 'poodle';
 
 /*
   nick   | last_name
 ---------+-----------
- Apelsin | Petrov
+ Apelsin | petrov
  Markiz  | Galkina
 */
 
@@ -30,16 +31,16 @@ WHERE Breed = 'poodle';
 -- Используя это представление, выведите рейтинг с сортировкой по убыванию балла.
 ---------------------------------------------------------------
 
-CREATE VIEW Employee_Rating AS
-SELECT Last_Name, First_Name, COUNT(*) AS orders_count, AVG(Mark) AS avg_mark
-FROM Order1
-    JOIN Employee on Employee.Employee_ID = Order1.Employee_ID
-    JOIN Person ON Person.Person_ID = Employee.Person_ID
-WHERE Order1.Is_Done = 1
-GROUP BY Last_Name, First_Name;
+CREATE VIEW employee_rating AS
+SELECT last_name, first_name, COUNT(*) AS orders_count, AVG(mark) AS avg_mark
+FROM order1
+    INNER JOIN employee on employee.employee_id = order1.employee_id
+    INNER JOIN person ON person.person_id = employee.person_id
+WHERE order1.is_done = 1
+GROUP BY last_name, first_name;
 
 SELECT *
-FROM Employee_Rating
+FROM employee_Rating
 ORDER BY avg_mark DESC;
 
 /*
@@ -57,13 +58,13 @@ ORDER BY avg_mark DESC;
 -- Используя это представление, напишите оператор, после выполнения которого у всех заказчиков без адреса в это поле добавится вопросительный знак.
 ---------------------------------------------------------------
 
-CREATE VIEW Customers AS
-SELECT DISTINCT Last_Name, First_Name, Phone, Address
-FROM Person
-    JOIN Owner ON Owner.Person_ID = Person.Person_ID
-    JOIN Order1 ON Order1.Owner_ID = Owner.Owner_ID;
+CREATE VIEW customers AS
+SELECT DISTINCT last_name, first_name, phone, address
+FROM person
+    INNER JOIN owner ON owner.person_id = person.person_id
+    INNER JOIN order1 ON order1.owner_id = owner.owner_id;
 
-SELECT * FROM Customers;
+SELECT * FROM customers;
 
 
 /*
@@ -72,83 +73,77 @@ SELECT * FROM Customers;
  Sokolov   | S.         | +7678901234  | Srednii pr VO, 27-1
  Ivanov    | Vano       | +7789012345  | Malyi pr VO, 33-2
  Vasiliev  | Vasia      | +7345678901  | Nevskii pr, 9-11
- Petrov    | Petia      | +79234567890 | Sadovaia ul, 17\2-23
+ petrov    | petia      | +79234567890 | Sadovaia ul, 17\2-23
  Galkina   | Galia      | +7567890123  | 10 linia VO, 35-26
 (5 rows)
 */
 
 /*
-Так как все с адресами, уберем какой-нибудь адрес
-В PostgreSQL нельзя писать UPDATE на VIEW, состоящие из нескольких таблиц
-ERROR:  cannot update view "customers"
-DETAIL:  Views that do not select from a single table or view are not automatically updatable.
+Уберем у кого нибудь адрес
 */
 
-UPDATE Person
-SET Address = ''
-WHERE Address = 'Nevskii pr, 9-11';
+UPDATE person
+SET address = ''
+WHERE last_name = 'Sokolov';
 
-SELECT * FROM Customers;
+SELECT * FROM customers;
 
 
 /*
  last_name | first_name |    phone     |       address
 -----------+------------+--------------+----------------------
- Vasiliev  | Vasia      | +7345678901  |
- Sokolov   | S.         | +7678901234  | Srednii pr VO, 27-1
+ Sokolov   | S.         | +7678901234  |
  Ivanov    | Vano       | +7789012345  | Malyi pr VO, 33-2
+ Vasiliev  | Vasia      | +7345678901  | Nevskii pr, 9-11
  Petrov    | Petia      | +79234567890 | Sadovaia ul, 17\2-23
  Galkina   | Galia      | +7567890123  | 10 linia VO, 35-26
 (5 rows)
 */
 
 /*
-Напишем UPDATE через EXISTS
+В psql нельзя писать update на view, состоящие из более чем одной таблицы, 
+поэтому напишем update через exists
 */
 
-UPDATE Person
-SET Address = '?'
+UPDATE person
+SET address = '?'
 WHERE EXISTS (
     SELECT *
-    FROM Customers
-    WHERE Customers.Last_Name = Person.Last_Name
-        AND Customers.First_Name = Person.First_Name
-        AND Customers.Phone = Person.Phone
-        AND Customers.Address = Person.Address
-        AND Customers.Address = ''
+    FROM customers
+    WHERE customers.last_name = person.last_name
+        AND customers.first_name = person.first_name
+        AND customers.phone = person.phone
+        AND person.address = ''
+        AND customers.address = ''
 );
 
-SELECT * FROM Customers;
+SELECT * FROM customers;
 
 /*
  last_name | first_name |    phone     |       address
 -----------+------------+--------------+----------------------
- Vasiliev  | Vasia      | +7345678901  | ?
- Sokolov   | S.         | +7678901234  | Srednii pr VO, 27-1
+ Sokolov   | S.         | +7678901234  | ?
  Ivanov    | Vano       | +7789012345  | Malyi pr VO, 33-2
+ Vasiliev  | Vasia      | +7345678901  | Nevskii pr, 9-11
  Petrov    | Petia      | +79234567890 | Sadovaia ul, 17\2-23
  Galkina   | Galia      | +7567890123  | 10 linia VO, 35-26
 (5 rows)
 */
 
-SELECT * FROM Person;
+SELECT * FROM person;
 
 /*
  person_id | last_name | first_name |    phone     |         address
 -----------+-----------+------------+--------------+--------------------------
          1 | Ivanov    | Vania      | +79123456789 | Srednii pr VO, 34-2
          2 | Petrov    | Petia      | +79234567890 | Sadovaia ul, 17\2-23
+         3 | Vasiliev  | Vasia      | +7345678901  | Nevskii pr, 9-11
          4 | Orlov     | Oleg       | +7456789012  | 5 linia VO, 45-8
          5 | Galkina   | Galia      | +7567890123  | 10 linia VO, 35-26
-         6 | Sokolov   | S.         | +7678901234  | Srednii pr VO, 27-1
          7 | Vorobiev  | Vova       | 123-45-67    | Universitetskaia nab, 17
          8 | Ivanov    | Vano       | +7789012345  | Malyi pr VO, 33-2
          9 | Sokolova  | Sveta      | 234-56-78    |
         10 | Zotov     | Misha      | 111-56-22    |
-         3 | Vasiliev  | Vasia      | +7345678901  | ?
+         6 | Sokolov   | S.         | +7678901234  | ?
 (10 rows)
-*/
-
-/*
-Адреса у людей не из Customers остались пустыми
 */
